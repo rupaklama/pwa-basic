@@ -66,3 +66,38 @@ function readAllData(store) {
     return storage.getAll();
   });
 }
+
+// note - need to CLEAR data in cache to serve fresh data on every render
+function clearAllData(store) {
+  return dbPromise.then(function (db) {
+    // note - clearing require 'write' access
+    const transaction = db.transaction(store, 'readwrite');
+    const storage = transaction.objectStore(store);
+    // remove or clear cache related to the give Object Store
+    storage.clear();
+    // closing operation with 'complete' property
+    // On every write operation, we want to return 'complete' to make sure an operation is successful
+    return transaction.complete;
+  });
+}
+
+// Deleting Single Items from the Database - take store & id of object to delete
+function deleteItemFromData(store, id) {
+  return (
+    dbPromise
+      // getting access to database
+      .then(function (db) {
+        // performing operation inside of Object Store db
+        // note - deleting also require 'write' access
+        const transaction = db.transaction(store, 'readwrite');
+        const storage = transaction.objectStore(store);
+
+        // passing id in the Store Object delete function
+        storage.delete(id);
+        return transaction.complete;
+      })
+      .then(function () {
+        console.log('Item deleted!');
+      })
+  );
+}

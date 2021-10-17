@@ -8,7 +8,7 @@ importScripts('/src/js/idb.js');
 // indexDB utility
 importScripts('/src/js/indexDB.js');
 
-var CACHE_STATIC_NAME = 'static-v17';
+var CACHE_STATIC_NAME = 'static-v18';
 var CACHE_DYNAMIC_NAME = 'dynamic-v2';
 var STATIC_FILES = [
   '/',
@@ -127,48 +127,60 @@ self.addEventListener('fetch', function (event) {
         // because the original Response always need to be returned even we store the Copy One
         // otherwise the fetch request from our main Application will fail.
         const clonedRes = res.clone(); // cloning
-        // returns json data with a promise
-        clonedRes.json().then(function (data) {
-          console.log('POSTS', data); // {first-post: {…}}
-          for (const key in data) {
-            // {first-post: {…}} - key is the prop 'first-post' & value is an Object
-            writeData('posts', data[key]);
-            // // STORING DATA IN indexDB
-            // dbPromise.then(function (db) {
-            //   // writing data in db - we can add an item to the store, like this:
-            //   // Creating transaction operation which is require in db
-            //   // first arg is the Store we want to work with
-            //   // second arg is the type of transaction - readonly – can only read, the default &
-            //   // readwrite – can only read and write the data, but not create/remove/alter object stores
-            //   const transaction = db.transaction('posts', 'readwrite'); // step 1
-            //   // get an object store to operate on it
-            //   const store = transaction.objectStore('posts'); // step 2
-            //   // adding data in Object Store
-            //   // {first-post: {…}} - key is the prop 'first-post' & value is an Object
-            //   store.put(data[key]);
 
-            //   // closing operation with 'complete' property
-            //   return transaction.complete;
+        // note - need to clear data in cache to serve fresh data on every render
+        // clearing cache before adding data
+        clearAllData('posts').then(function () {
+          // Under this function, we will continue adding items after clearing
+          // returns json data with a promise
+          clonedRes.json().then(function (data) {
+            console.log('POSTS', data); // {first-post: {…}}
+            for (const key in data) {
+              // {first-post: {…}} - key is the prop 'first-post' & value is an Object
+              writeData('posts', data[key]);
+              // just for testing
+              // note - we also immediately DELETE data after adding
+              // .then(function () {
+              //   deleteItemFromData('posts', key);
+              // });
+              // // STORING DATA IN indexDB
+              // dbPromise.then(function (db) {
+              //   // writing data in db - we can add an item to the store, like this:
+              //   // Creating transaction operation which is require in db
+              //   // first arg is the Store we want to work with
+              //   // second arg is the type of transaction - readonly – can only read, the default &
+              //   // readwrite – can only read and write the data, but not create/remove/alter object stores
+              //   const transaction = db.transaction('posts', 'readwrite'); // step 1
+              //   // get an object store to operate on it
+              //   const store = transaction.objectStore('posts'); // step 2
+              //   // adding data in Object Store
+              //   // {first-post: {…}} - key is the prop 'first-post' & value is an Object
+              //   store.put(data[key]);
 
-            //   // There were basically four steps:
+              //   // closing operation with 'complete' property
+              //   return transaction.complete;
 
-            //   // Create a transaction, mentioning all the stores it’s going to access, at (1).
-            //   // Get the store object using transaction.objectStore(name), at (2).
-            //   // Perform the request to the object store books.add(book), at (3).
-            //   // …Handle request success/error (4), then we can make other requests if needed, etc.
-            //   // Object stores support two methods to store a value:
+              //   // There were basically four steps:
 
-            //   // put(value, [key]) Add the value to the store. The key is supplied only if the object store did not have keyPath or autoIncrement option. If there’s already a value with the same key, it will be replaced.
+              //   // Create a transaction, mentioning all the stores it’s going to access, at (1).
+              //   // Get the store object using transaction.objectStore(name), at (2).
+              //   // Perform the request to the object store books.add(book), at (3).
+              //   // …Handle request success/error (4), then we can make other requests if needed, etc.
+              //   // Object stores support two methods to store a value:
 
-            //   // add(value, [key]) Same as put, but if there’s already a value with the same key, then the request fails, and an error with the name "ConstraintError" is generated.
+              //   // put(value, [key]) Add the value to the store. The key is supplied only if the object store did not have keyPath or autoIncrement option. If there’s already a value with the same key, it will be replaced.
 
-            //   // Similar to opening a database, we can send a request: books.add(book), and then wait for success/error events.
+              //   // add(value, [key]) Same as put, but if there’s already a value with the same key, then the request fails, and an error with the name "ConstraintError" is generated.
 
-            //   // The request.result for add is the key of the new object.
-            //   // The error is in request.error (if any).
-            // });
-          }
+              //   // Similar to opening a database, we can send a request: books.add(book), and then wait for success/error events.
+
+              //   // The request.result for add is the key of the new object.
+              //   // The error is in request.error (if any).
+              // });
+            }
+          });
         });
+
         return res; // returning original response
       })
     );
